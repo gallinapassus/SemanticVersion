@@ -1,4 +1,4 @@
-name: Semver-CI
+name: Tests
 
 on:
   push:
