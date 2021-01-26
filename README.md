@@ -1,4 +1,4 @@
-[![Actions Status](https://github.com/gallinapassus/SemanticVersion/workflows/Swift/badge.svg)](https://github.com/gallinapassus/SemanticVersion/actions)
+[![Actions Status](https://github.com/gallinapassus/SemanticVersion/workflows/Tests/badge.svg)](https://github.com/gallinapassus/SemanticVersion/actions)
 ![Version](https://img.shields.io/static/v1?label=Version&message=0.1.0&color=green)
 ![License](https://img.shields.io/static/v1?label=License&message=CC0&color=green)
 
