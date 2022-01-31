@@ -6,24 +6,6 @@ import Glibc
 @testable import SemanticVersion
 
 final class SemanticVersionTests: XCTestCase {
-    static var allTests = [
-        ("test_00", test_00),
-        ("test_comparators_1", test_comparators_1),
-        ("test_comparators_2", test_comparators_2),
-        ("test_comparators_3", test_comparators_3),
-        ("test_comparators_and_api_stability", test_comparators_and_api_stability),
-        ("test_filtering", test_filtering),
-        ("test_ranges", test_ranges),
-        ("test_init", test_init),
-        ("test_codable", test_codable),
-        ("test_LosslessStringConvertible", test_LosslessStringConvertible),
-        ("test_semverRule_9_preRelease", test_semverRule_9_preRelease),
-        ("test_semverRule_10_buildMetadata", test_semverRule_10_buildMetadata),
-        ("test_semverRule_9_nonEmptyIdentifiers", test_semverRule_9_nonEmptyIdentifiers),
-        ("test_semverRule_9_asciiAlnumHyphen", test_semverRule_9_asciiAlnumHyphen),
-        ("test_semverRule_9_noLeadingZeroes", test_semverRule_9_noLeadingZeroes),
-        ("test_semverRule_11_precedence", test_semverRule_11_precedence),
-        ("test_sort", test_sort),    ]
     struct V1_0_0 : SemanticVersionable {
         var version: SemanticVersion { return SemanticVersion(1, 0, 0) }
     }
