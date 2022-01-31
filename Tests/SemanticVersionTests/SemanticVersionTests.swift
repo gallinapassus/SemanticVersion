@@ -20,7 +20,7 @@ final class SemanticVersionTests: XCTestCase {
         var version: SemanticVersion { return SemanticVersion(1, 0, 0, ["a", "a"], nil)! }
     }
     struct V1_0_0_ab : SemanticVersionable {
-        var version: SemanticVersion { return SemanticVersion(1, 0, 0, ["b", "b"], nil)! }
+        var version: SemanticVersion { return SemanticVersion(1, 0, 0, ["a", "b"], nil)! }
     }
     struct V1_0_1 : SemanticVersionable {
         var version: SemanticVersion { return SemanticVersion(1, 0, 1) }
@@ -43,7 +43,20 @@ final class SemanticVersionTests: XCTestCase {
         XCTAssertEqual(SemanticVersion(0, 0, 0, ["-", "-"], ["-"])?.description, "0.0.0--.-+-")
         XCTAssertEqual(SemanticVersion(0, 0, 0, ["a", "b"], ["a", "b"])?.description, "0.0.0-a.b+a.b")
         XCTAssertEqual(SemanticVersion(0, 0, 0, nil, ["-"])?.description, "0.0.0+-")
+        XCTAssertEqual(SemanticVersion(1, 0, 0, ["beta", "3"], ["x86-64", "debug"])?.description, "1.0.0-beta.3+x86-64.debug")
+        struct TestStruct : SemanticVersionable {
+            var version: SemanticVersion {
+                SemanticVersion(1, 0, 0, ["beta", "3"], ["x86-64", "debug"])!
+            }
+        }
+        struct TestClass : SemanticVersionable {
+            var version: SemanticVersion {
+                SemanticVersion(1, 0, 0, ["beta", "3"], ["x86-64", "debug"])!
+            }
+        }
         XCTAssertNil(SemanticVersion(0, 0, 0, ["#"], ["%"])?.description)
+        XCTAssertFalse(TestStruct().version.isStable)
+        XCTAssertFalse(TestClass().version.isStable)
     }
     func test_comparators_1() {
         XCTAssertEqual(V1_0_0().version, V1_0_0().version)
@@ -71,12 +84,14 @@ final class SemanticVersionTests: XCTestCase {
         XCTAssertTrue((V1_0_0().version != V1_1_1().version))
     }
     func test_comparators_and_api_stability() {
-        struct Foo : SemanticVersionable {}
+        struct Foo : SemanticVersionable {
+            var version: SemanticVersion { SemanticVersion() }
+        }
         let foo = Foo()
 
         XCTAssertEqual(foo.version.description, "0.0.0")
         XCTAssertEqual(foo.version, SemanticVersion(0, 0, 0, nil, nil))
-        XCTAssertFalse(foo.isStable)
+        XCTAssertFalse(foo.version.isStable)
 
 
         struct Bar : SemanticVersionable {
@@ -85,7 +100,7 @@ final class SemanticVersionTests: XCTestCase {
             }
         }
         let bar = Bar()
-        XCTAssertTrue(bar.isStable)
+        XCTAssertTrue(bar.version.isStable)
         XCTAssertEqual(bar.version.description, "1.0.0")
 
 
@@ -95,28 +110,30 @@ final class SemanticVersionTests: XCTestCase {
             }
         }
         let foobar = Foobar()
-        XCTAssertFalse(foobar.isStable)
+        XCTAssertFalse(foobar.version.isStable)
         XCTAssertEqual(foobar.version.description, "1.0.0-pre-release.dbg+build.76fc43d")
         XCTAssertTrue(foo.version < bar.version)
         XCTAssertTrue(foo.version < foobar.version)
         XCTAssertTrue(foobar.version == foobar.version)
 
-        @objc class Barfoo : NSObject, SemanticVersionable {}
+        @objc class Barfoo : NSObject, SemanticVersionable {
+            var version: SemanticVersion { SemanticVersion() }
+        }
         let barfoo = Barfoo()
-        XCTAssertFalse(barfoo.isStable)
+        XCTAssertFalse(barfoo.version.isStable)
         XCTAssertEqual(barfoo.version.description, "0.0.0")
     }
     func test_filtering() {
+        let baseLine = SemanticVersion(1,0,0)
         let modules = [
             SemanticVersion(0, 9, 99),
             SemanticVersion(1,2,3),
+            baseLine,
+            SemanticVersion(1, 0, 0, ["rc", "1"], ["debug"])!,
             SemanticVersion(1, 0, 0, ["rc", "1"])!,
-            SemanticVersion(1, 0, 0, ["rc", "1"], ["debug"])!
             ]
-        let baseLine = SemanticVersion(1,0,0)
-
-        let baselineOrAbove = modules.filter({ $0 > baseLine})
-        XCTAssertTrue(baselineOrAbove.count == 1)
+        let baselineOrAbove = modules.filter({ $0 >= baseLine})
+        XCTAssertTrue(baselineOrAbove.count == 2)
     }
     func test_ranges() {
 
@@ -218,6 +235,7 @@ final class SemanticVersionTests: XCTestCase {
     func test_codable() {
         let encoded:Data
         let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
         do {
             encoded = try encoder.encode(V1_0_0_ab().version)
             let decoder = JSONDecoder()
@@ -228,6 +246,22 @@ final class SemanticVersionTests: XCTestCase {
             XCTFail(error.localizedDescription)
         }
 
+    }
+    func testHashable() {
+        let dict:[String:SemanticVersion] = [
+            "a": SemanticVersion(0,1,2),
+            "b": SemanticVersion(3,4,5)
+        ]
+        XCTAssertEqual(dict["a"], SemanticVersion(0,1,2))
+        XCTAssertEqual(dict["b"], SemanticVersion(3,4,5))
+    }
+    func testEqualPrecedence() {
+        XCTAssertTrue(SemanticVersion() == SemanticVersion())
+        XCTAssertTrue(SemanticVersion() === SemanticVersion())
+
+        XCTAssertTrue(SemanticVersion(1,2,3,nil,["a"]) == SemanticVersion(1,2,3,nil,["z"]))
+        XCTAssertFalse(SemanticVersion(1,2,3,nil,["a"])! === SemanticVersion(1,2,3,nil,["z"])!)
+        XCTAssertFalse(SemanticVersion(1,2,3,nil,["a"]) != SemanticVersion(1,2,3,nil,["z"]))
     }
     func test_LosslessStringConvertible() {
         let data:[(String, SemanticVersion?)] = [
@@ -416,7 +450,7 @@ final class SemanticVersionTests: XCTestCase {
 
         // Example
         do {
-            let ordered = [
+            let expectedSortingOrder = [
                 SemanticVersion("1.0.0-alpha")!,
                 SemanticVersion("1.0.0-alpha.1")!,
                 SemanticVersion("1.0.0-alpha.beta")!,
@@ -426,7 +460,7 @@ final class SemanticVersionTests: XCTestCase {
                 SemanticVersion("1.0.0-rc.1")!,
                 SemanticVersion("1.0.0")!
             ]
-            _ = zip(ordered.dropLast(), ordered.dropFirst()).map {
+            _ = zip(expectedSortingOrder.dropLast(), expectedSortingOrder.dropFirst()).map {
                 XCTAssertTrue($0.0 < $0.1, "\($0.0) < \($0.1)")
             }
         }
@@ -497,7 +531,7 @@ final class SemanticVersionTests: XCTestCase {
     }
     func test_sort() {
         func rnd() -> UInt {
-            let r = ClosedRange<UInt>(0...1)
+            let r:ClosedRange<UInt> = (0...1)
             return r.randomElement() ?? 0
         }
         func rndstr() -> [String]? {
