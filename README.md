@@ -4,7 +4,7 @@
 
 # SemanticVersion
 
-SemanticVersion defines a concrete type `SemanticVersion` capable of representing a semantic version number. It also defines a `SemanticVersionable` protocol for classes/structs wanting to declare conformance to semantic versioning.
+SemanticVersion defines a concrete type `SemanticVersion` capable of representing a semantic version number. It also defines a `SemanticVersionable` protocol for easy versioning.
 
 More info about semantic versioning: https://semver.org
 
