@@ -5,13 +5,28 @@ on:
     branches: [ dev ]
     
 jobs:
-  build:
+  build-macOS:
 
     runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
+    - name: Show swift version
+      run: swift --version
+    - name: Build macOS
       run: swift build -v
     - name: Run tests
+      run: swift test -v
+
+  build-Linux:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Show swift version
+      run: swift --version
+    - name: Build Linux
+      run: swift build -v
+    - name: Run Linux tests
       run: swift test -v
