@@ -6,24 +6,21 @@ extension SemanticVersionTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__SemanticVersionTests = [
-        ("test_00", test_00),
+        ("test_allowLeadingZeroes", test_allowLeadingZeroes),
+        ("test_asciiAlnumHyphen", test_asciiAlnumHyphen),
         ("test_codable", test_codable),
-        ("test_comparators_1", test_comparators_1),
-        ("test_comparators_2", test_comparators_2),
-        ("test_comparators_3", test_comparators_3),
         ("test_comparators_and_api_stability", test_comparators_and_api_stability),
-        ("test_filtering", test_filtering),
+        ("test_description", test_description),
         ("test_init", test_init),
+        ("test_instanceEquality", test_instanceEquality),
         ("test_LosslessStringConvertible", test_LosslessStringConvertible),
+        ("test_noLeadingZeroes", test_noLeadingZeroes),
+        ("test_nonEmptyIdentifiers", test_nonEmptyIdentifiers),
+        ("test_precedence", test_precedence),
         ("test_ranges", test_ranges),
-        ("test_semverRule_10_buildMetadata", test_semverRule_10_buildMetadata),
         ("test_semverRule_11_precedence", test_semverRule_11_precedence),
-        ("test_semverRule_9_asciiAlnumHyphen", test_semverRule_9_asciiAlnumHyphen),
-        ("test_semverRule_9_noLeadingZeroes", test_semverRule_9_noLeadingZeroes),
-        ("test_semverRule_9_nonEmptyIdentifiers", test_semverRule_9_nonEmptyIdentifiers),
         ("test_semverRule_9_preRelease", test_semverRule_9_preRelease),
         ("test_sort", test_sort),
-        ("testEqualPrecedence", testEqualPrecedence),
         ("testHashable", testHashable),
     ]
 }
