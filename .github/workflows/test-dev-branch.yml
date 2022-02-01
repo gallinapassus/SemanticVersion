@@ -11,6 +11,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: dev
     - name: Show swift version
       run: swift --version
     - name: Build macOS
@@ -24,6 +26,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: dev
     - name: Show swift version
       run: swift --version
     - name: Build Linux
