@@ -13,7 +13,8 @@ let package = Package(
     targets: [
         .target(
             name: "SemanticVersion",
-            dependencies: []),
+            dependencies: [],
+            exclude: ["SemanticVersion.docc"]),
         .testTarget(
             name: "SemanticVersionTests",
             dependencies: ["SemanticVersion"]),
