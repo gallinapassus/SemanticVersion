@@ -1,5 +1,5 @@
 [![Actions Status](https://github.com/gallinapassus/SemanticVersion/workflows/Tests/badge.svg)](https://github.com/gallinapassus/SemanticVersion/actions)
-![Version](https://img.shields.io/static/v1?label=Version&message=0.3.0&color=green)
+![Version](https://img.shields.io/static/v1?label=Version&message=0.3.1&color=green)
 ![License](https://img.shields.io/static/v1?label=License&message=CC0&color=green)
 
 # SemanticVersion
