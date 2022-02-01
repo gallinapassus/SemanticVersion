@@ -1,5 +1,6 @@
 import Foundation
 
+
 //
 // https://semver.org
 //
@@ -100,12 +101,14 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
     /// SemanticVersion(1,2,3,nil,["a"]) === SemanticVersion(1,2,3,nil,["z"]) // false
     /// SemanticVersion(1,2,3,nil,["a"]) != SemanticVersion(1,2,3,nil,["z"]) // false
     /// ```
+
     public static func ==(lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
         return (lhs < rhs) == false && (lhs > rhs) == false
     }
     /// Compare version number instance variable equality.
     ///
     /// Important: See also ``==(_:_:)``
+
     public static func ===(lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
         return lhs.major == rhs.major &&
         lhs.minor == rhs.minor &&
@@ -146,7 +149,7 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
         if let lhsTokens = lhs.preReleaseIdentifiers {
             if let rhsTokens = rhs.preReleaseIdentifiers {
                 // some, some => comapre
-                let r = Self._semanticTokenArrayCompareLessThan(lhsTokens, rhsTokens)
+                let r = Self._tokenCompare(lhsTokens, rhsTokens)
                 return r
             }
             else {
@@ -217,6 +220,10 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
         if leadingZeroes.count >= 1 && token.count > 1 {
             return false
         }
+        // Finally, check that the "numeric string" can be converted to UInt
+        guard UInt(token) != nil else {
+            return false
+        }
         // Do not allow empty identifiers
         return !token.isEmpty
     }
@@ -224,13 +231,26 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
         return CharacterSet(charactersIn: token)
             .isSubset(of: CharacterSet(charactersIn: "1234567890"))
     }
-    private static func _semanticTokenArrayCompareLessThan(_ lhs:[String], _ rhs:[String]) -> Bool {
+    private static func _tokenCompare(_ lhs:[String], _ rhs:[String]) -> Bool {
 
         for (l,r) in zip(lhs, rhs) {
-            switch (_isNumericToken(l), _isNumericToken(r)) {
+            switch (_isValidNumericToken(l), _isValidNumericToken(r)) {
             case (true, true):
                 guard let ul = UInt(l), let ur = UInt(r) else {
-                    fatalError("String to UInt conversion failed. Are these [\(l), \(r)] valid UInt values?")
+                    // This should never happen, but if it does, let's compare
+                    // numeric tokens as strings
+                    if l == r { continue }
+                    else {
+                        if l.count == r.count {
+                            // equal character count, hence string comparison
+                            // returns correct result
+                            return l < r
+                        }
+                        else {
+                            // different character count, shorter string is smaller
+                            return l.count < r.count
+                        }
+                    }
                 }
                 if ul == ur { continue }
                 else { return ul < ur }
@@ -305,13 +325,15 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
                 // likely save some poor souls from the initial mistake
                 // of releasing first release candidate as "rc1"
                 // and not as "rc.1" or "rc001"
+                //
+                // 2022: Reverting the above decision in order to fully comply
+                // with the semver 2.0.0 spec
 
-
-                #if SORT_OPTION_NONE
+                // Following line enables strict conformance to semver 2.0.0
                 let sortOptions:NSString.CompareOptions = []
-                #else
-                let sortOptions:NSString.CompareOptions = [.numeric]
-                #endif
+                // Following line enables a more "natural" sort order for humans
+                // let sortOptions:NSString.CompareOptions = [.numeric]
+
                 switch l.compare(r, options: sortOptions) {
                 case .orderedAscending: return true
                 case .orderedDescending: return false

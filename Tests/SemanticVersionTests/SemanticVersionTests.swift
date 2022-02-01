@@ -75,6 +75,13 @@ final class SemanticVersionTests: XCTestCase {
         XCTAssertTrue((V1_0_0().version <= V1_1_1().version))
         XCTAssertFalse((V1_0_0().version >= V1_1_1().version))
         XCTAssertTrue((V1_0_0().version != V1_1_1().version))
+
+        print(SemanticVersion(1, 0, 0, ["rc10"])! < SemanticVersion(1, 0, 0, ["rc9"])!)
+        print(SemanticVersion(1, 0, 0, ["rc9"])! < SemanticVersion(1, 0, 0, ["rc10"])!)
+        print(SemanticVersion(1, 0, 0, ["rc1"])! < SemanticVersion(1, 0, 0, ["rc10"])!)
+        print(["rc10"].lexicographicallyPrecedes(["rc09"]))
+        print(["rc9a"].lexicographicallyPrecedes(["rc09a"]))
+        print(["10"].lexicographicallyPrecedes(["09"]))
     }
     func test_comparators_and_api_stability() {
         struct Foo : SemanticVersionable {
@@ -224,6 +231,33 @@ final class SemanticVersionTests: XCTestCase {
             XCTAssertEqual(v?.preReleaseIdentifiers, ["a"])
             XCTAssertEqual(v?.buildMetadataIdentifiers, ["b"])
         }
+        do {
+            let v = SemanticVersion(1, 2, 3, ["0"], ["0"])
+            XCTAssertEqual(v?.major, 1)
+            XCTAssertEqual(v?.minor, 2)
+            XCTAssertEqual(v?.patch, 3)
+            XCTAssertEqual(v?.preReleaseIdentifiers, ["0"])
+            XCTAssertEqual(v?.buildMetadataIdentifiers, ["0"])
+        }
+        do {
+            // should fail as numeric identifiers must not include leading zeroes
+            let v = SemanticVersion(1, 2, 3, ["00"])
+            XCTAssertNil(v)
+        }
+        do {
+            // should fail as numeric identifiers must not include leading zeroes
+            let v = SemanticVersion(1, 2, 3, nil, ["00"])
+            XCTAssertNil(v)
+        }
+        do {
+            // should fail as numeric identifiers must not include leading zeroes
+            let v = SemanticVersion(1, 2, 3, ["0a"])
+            XCTAssertEqual(v?.major, 1)
+            XCTAssertEqual(v?.minor, 2)
+            XCTAssertEqual(v?.patch, 3)
+            XCTAssertEqual(v?.preReleaseIdentifiers, ["0a"])
+            XCTAssertNil(v?.buildMetadataIdentifiers)
+        }
     }
     func test_codable() {
         let encoded:Data
@@ -241,12 +275,12 @@ final class SemanticVersionTests: XCTestCase {
 
     }
     func testHashable() {
-        let dict:[String:SemanticVersion] = [
-            "a": SemanticVersion(0,1,2),
-            "b": SemanticVersion(3,4,5)
+        let dict:[SemanticVersion:String] = [
+            SemanticVersion(0,1,2): "a",
+            SemanticVersion(3,4,5): "b"
         ]
-        XCTAssertEqual(dict["a"], SemanticVersion(0,1,2))
-        XCTAssertEqual(dict["b"], SemanticVersion(3,4,5))
+        XCTAssertEqual(dict[SemanticVersion(0,1,2)], "a")
+        XCTAssertEqual(dict[SemanticVersion(3,4,5)], "b")
     }
     func testEqualPrecedence() {
         XCTAssertTrue(SemanticVersion() == SemanticVersion())
@@ -425,11 +459,15 @@ final class SemanticVersionTests: XCTestCase {
 
         // Compare numerically
         XCTAssertTrue(SemanticVersion(2, 3, 4, ["0"])! < SemanticVersion(2, 3, 4, ["1"])!)
-        // Compare ASCII sort order
-//        XCTAssertTrue(SemanticVersion(2, 3, 4, ["Z"])! < SemanticVersion(2, 3, 4, ["z"])!)
-//        XCTAssertTrue(SemanticVersion(2, 3, 4, ["Z"])! > SemanticVersion(2, 3, 4, ["z"])!)
+        // Compare lexically in ASCII sort order
+        // "Z" appears before "z" in ASCII table
+        // Hyphen (-) appears before "a" in ASCII table
         XCTAssertTrue(SemanticVersion(2, 3, 4, ["Z"])! < SemanticVersion(2, 3, 4, ["z"])!)
         XCTAssertTrue(SemanticVersion(2, 3, 4, ["-"])! < SemanticVersion(2, 3, 4, ["a"])!)
+        // Unfortunately - lexical ASCII sort order means that "rc10" precedes "rc9"
+        // A more natural sorting order for humans would be "rc9" < "rc10"
+        // But as lexical sort order is the semver 2.0.0 spec, that must be followed then
+        XCTAssertTrue(SemanticVersion(2, 3, 4, ["rc10"])! < SemanticVersion(2, 3, 4, ["rc9"])!)
 
         // Numeric identifiers always have lower precedence than non-numeric identifiers.
         // Hyphen (-) appears before zero (0) in ASCII table
@@ -439,7 +477,7 @@ final class SemanticVersionTests: XCTestCase {
         // smaller set, if all of the preceding identifiers are equal.
         let lower = SemanticVersion(2, 3, 4, ["0", "a"])!
         let higher = SemanticVersion(2, 3, 4, ["0", "a", "onemore"])!
-        XCTAssert((lower < higher) == true)
+        XCTAssertTrue(lower < higher)
 
         // Example
         do {
@@ -471,10 +509,11 @@ final class SemanticVersionTests: XCTestCase {
         }
         #else
         do {
+            // Lexical ASCII sort order (unfortunately)
             let ordered = [
-                SemanticVersion("1.0.0-alpha9")!,
-                SemanticVersion("1.0.0-alpha20")!,
                 SemanticVersion("1.0.0-alpha100")!,
+                SemanticVersion("1.0.0-alpha20")!,
+                SemanticVersion("1.0.0-alpha9")!,
                 SemanticVersion("1.0.0")!
             ]
             _ = zip(ordered.dropLast(), ordered.dropFirst()).map {
