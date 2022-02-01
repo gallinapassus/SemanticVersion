@@ -52,7 +52,7 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
     }
     public init?(_ major: UInt, _ minor: UInt, _ patch: UInt, _ preReleaseIdentifiers: [String]?) {
         // init will ignore tokens with invalid characters
-        guard Self._validateIdentifiers(preReleaseIdentifiers) else { return nil }
+        guard Self._validateIdentifiers(preReleaseIdentifiers, for: .prerelease) else { return nil }
         self.init(major, minor, patch)
         self.preReleaseIdentifiers = preReleaseIdentifiers
     }
@@ -60,8 +60,8 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
                 _ preReleaseIdentifiers: [String]?,
                 _ buildMetadataIdentifiers: [String]?) {
         // init will ignore tokens with invalid characters
-        guard Self._validateIdentifiers(preReleaseIdentifiers),
-              Self._validateIdentifiers(buildMetadataIdentifiers) else { return nil }
+        guard Self._validateIdentifiers(preReleaseIdentifiers, for: .prerelease),
+              Self._validateIdentifiers(buildMetadataIdentifiers, for: .buildmeta) else { return nil }
         self.init(major, minor, patch)
         self.preReleaseIdentifiers = preReleaseIdentifiers
         self.buildMetadataIdentifiers = buildMetadataIdentifiers
@@ -71,7 +71,7 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
     }
     public init?(major: UInt, minor: UInt, patch: UInt, preReleaseIdentifiers: [String]?) {
         // init will ignore tokens with invalid characters
-        guard Self._validateIdentifiers(preReleaseIdentifiers) else { return nil }
+        guard Self._validateIdentifiers(preReleaseIdentifiers, for: .prerelease) else { return nil }
         self.init(major, minor, patch)
         self.preReleaseIdentifiers = preReleaseIdentifiers
     }
@@ -79,8 +79,8 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
                 preReleaseIdentifiers: [String]?,
                 buildMetadataIdentifiers: [String]?) {
         // init will ignore tokens with invalid characters
-        guard Self._validateIdentifiers(preReleaseIdentifiers),
-              Self._validateIdentifiers(buildMetadataIdentifiers) else { return nil }
+        guard Self._validateIdentifiers(preReleaseIdentifiers, for: .prerelease),
+              Self._validateIdentifiers(buildMetadataIdentifiers, for: .buildmeta) else { return nil }
         self.init(major, minor, patch)
         self.preReleaseIdentifiers = preReleaseIdentifiers
         self.buildMetadataIdentifiers = buildMetadataIdentifiers
@@ -149,7 +149,7 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
         if let lhsTokens = lhs.preReleaseIdentifiers {
             if let rhsTokens = rhs.preReleaseIdentifiers {
                 // some, some => comapre
-                let r = Self._tokenCompare(lhsTokens, rhsTokens)
+                let r = Self._tokenCompare(lhsTokens, rhsTokens, for: .prerelease)
                 return r
             }
             else {
@@ -177,12 +177,21 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
     }
     // MARK: -
     // MARK: Internal
-    private static func _validateIdentifiers(_ identifiers:[String]?) -> Bool {
+    private enum IdentifierType { case prerelease, buildmeta }
+    private static func _validateIdentifiers(_ identifiers:[String]?, for:IdentifierType) -> Bool {
         // identifiers == nil -> ok
         guard let identifiers = identifiers else {
             return true
         }
-        // - Don't allow empty identifiers []
+        // An empty array is ok as it doesn't contain empty identifiers
+        guard identifiers.isEmpty == false else {
+            return true // Empty array -> ok
+        }
+        // - Don't allow empty identifiers inside [""]
+        guard identifiers.allSatisfy({ $0.isEmpty == false }) else {
+            // At least one of the identifiers was empty -> not valid
+            return false
+        }
         // - Require identifiers to be either valid numeric identifiers
         //   or valid alphanumeric or hyphen identifiers [0-9A-Za-z-]
         //
@@ -191,8 +200,8 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
         // identifier. And and as it has a leading zero, it becomes
         // a non-valid identifier.
 
-        return identifiers.isEmpty ? false : identifiers.allSatisfy({ (s) in
-            guard Self._isValidNumericToken(s) == true else {
+        return identifiers.allSatisfy({ (s) in
+            guard Self._isValidNumericToken(s, for: `for`) == true else {
                 // not a "pure" numeric identifier
                 // is it [0-9A-Za-z-] identifier?
                 return Self._isAlphaNumericOrHyphenToken(s) && // [0-9A-Za-z-]
@@ -208,16 +217,19 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
             .isSubset(of: _validIdentifierChars)
     }
 
-    private static func _isValidNumericToken(_ token:String) -> Bool {
+    private static func _isValidNumericToken(_ token:String, for: IdentifierType) -> Bool {
         // Only numbers allowed
-        // No leading zeroes allowed
+        // No leading zeroes allowed in prerelease numeric identifiers
+        // Leading zeroes are allowed in buildmeta numeric identifiers
+
+
         guard Self._isNumericToken(token) else {
             return false
         }
         // Extract all zeros from the beginning
         let leadingZeroes = token.prefix(while: { (char) -> Bool in char == "0" })
         // One zero "0" is ok, two or more zeros "00", means we have leading zeros -> not ok
-        if leadingZeroes.count >= 1 && token.count > 1 {
+        if leadingZeroes.count >= 1 && token.count > 1 && `for` == .prerelease {
             return false
         }
         // Finally, check that the "numeric string" can be converted to UInt
@@ -231,10 +243,10 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
         return CharacterSet(charactersIn: token)
             .isSubset(of: CharacterSet(charactersIn: "1234567890"))
     }
-    private static func _tokenCompare(_ lhs:[String], _ rhs:[String]) -> Bool {
+    private static func _tokenCompare(_ lhs:[String], _ rhs:[String], for:IdentifierType) -> Bool {
 
         for (l,r) in zip(lhs, rhs) {
-            switch (_isValidNumericToken(l), _isValidNumericToken(r)) {
+            switch (_isValidNumericToken(l, for: `for`), _isValidNumericToken(r, for: `for`)) {
             case (true, true):
                 guard let ul = UInt(l), let ur = UInt(r) else {
                     // This should never happen, but if it does, let's compare
@@ -505,8 +517,8 @@ extension SemanticVersion : LosslessStringConvertible {
 
         // Validate & initialize the pre-release and build
         // metadata identifiers.
-        guard Self._validateIdentifiers(releaseComponents),
-              Self._validateIdentifiers(buildComponents) else { return nil }
+        guard Self._validateIdentifiers(releaseComponents, for: .prerelease),
+              Self._validateIdentifiers(buildComponents, for: .buildmeta) else { return nil }
         self.preReleaseIdentifiers = releaseComponents
         self.buildMetadataIdentifiers = buildComponents
     }
