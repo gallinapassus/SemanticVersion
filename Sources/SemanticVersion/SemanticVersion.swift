@@ -13,7 +13,7 @@ public protocol SemanticVersionable {
 }
 // MARK: -
 /// Concrete type representing a semantic version as defined in semver 2.0.0 https://semver.org
-public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
+public struct SemanticVersion : Codable, Hashable, Equatable, Comparable, Sendable {
 
     // MARK: Public
     /// Major version number.
@@ -33,11 +33,11 @@ public struct SemanticVersion : Codable, Hashable, Equatable, Comparable {
     /// A pre-release version can be denoted with pre-release identifiers.
     /// Pre-release version identifiers will follow immediately after the version number, separated with hyphen.
     /// Pre-release identifiers must contain only ASCII alphanumerics and hyphen [0-9A-Za-z-]. Empty identifiers are not allowed and numeric identifiers must not include leading zeroes. Pre-release versions have a lower precedence than the associated normal version. A pre-release version indicates that the version is unstable and might not satisfy the intended compatibility requirements as denoted by its associated normal version.
-    private (set) public var preReleaseIdentifiers:[String]?
+    private(set) public var preReleaseIdentifiers:[String]?
     /// Build metadata identifiers.
     ///
     /// Build metadata can be denoted with metadata identifiers. Metadata identifiers will follow immediately the patch or pre-release version. Identifiers must contain only ASCII alphanumerics and hyphen [0-9A-Za-z-]. Empty identifiers are not allowed. Build metadata is ignored when determining version precedence. Thus two versions that differ only in the build metadata, have the same precedence.
-    private (set) public var buildMetadataIdentifiers:[String]?
+    private(set) public var buildMetadataIdentifiers:[String]?
     /// Indicates API stability.
     public var isStable:Bool { return major != 0 && preReleaseIdentifiers == nil }
 
