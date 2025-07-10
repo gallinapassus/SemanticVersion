@@ -8,7 +8,7 @@ import Foundation
 /// A type that can represent a semantic version number.
 ///
 /// Types that conform to SemanticVersionable can represent a version number as defined in semver 2.0.0 https://semver.org
-public protocol SemanticVersionable {
+public protocol SemanticVersionable : Sendable {
     var version:SemanticVersion { get }
 }
 // MARK: -
